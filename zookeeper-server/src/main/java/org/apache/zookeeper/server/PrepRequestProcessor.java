@@ -339,6 +339,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
                     throw new KeeperException.InvalidACLException(path);
                 }
                 String parentPath = path.substring(0, lastSlash);
+                //todo 获取父节点的lastChange，用于实现序列功能，如果不存在父节点 报错。
                 ChangeRecord parentRecord = getRecordForPath(parentPath);
 
                 checkACL(zks, parentRecord.acl, ZooDefs.Perms.CREATE,
@@ -351,6 +352,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
                 }
                 validatePath(path, request.sessionId);
                 try {
+                    //todo 判断节点是否已经存在。
                     if (getRecordForPath(path) != null) {
                         throw new KeeperException.NodeExistsException(path);
                     }
@@ -372,9 +374,9 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
                 parentRecord = parentRecord.duplicate(request.hdr.getZxid());
                 parentRecord.childCount++;
                 parentRecord.stat.setCversion(newCversion);
-                addChangeRecord(parentRecord);
+                addChangeRecord(parentRecord); //todo 创建节点时 父节点的也要改变
                 addChangeRecord(new ChangeRecord(request.hdr.getZxid(), path, s,
-                        0, listACL));
+                        0, listACL)); //todo 创建当前节点的请求。
                 break;
             case OpCode.delete:
                 zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
@@ -456,6 +458,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
                 request.request.rewind();
                 int to = request.request.getInt();
                 request.txn = new CreateSessionTxn(to);
+
                 request.request.rewind();
                 zks.sessionTracker.addSession(request.sessionId, to);
                 zks.setOwner(request.sessionId, request.getOwner());

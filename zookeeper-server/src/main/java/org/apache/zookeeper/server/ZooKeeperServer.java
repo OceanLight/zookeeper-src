@@ -281,7 +281,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             setZxid(zkDb.getDataTreeLastProcessedZxid());
         }
         else {
-            setZxid(zkDb.loadDataBase());
+            setZxid(zkDb.loadDataBase()); //todo 初始化dataTree, 最新的事务id
         }
         
         // Clean up dead sessions
@@ -412,8 +412,8 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         if (sessionTracker == null) {
             createSessionTracker();
         }
-        startSessionTracker();
-        setupRequestProcessors();
+        startSessionTracker(); //todo 启动线程
+        setupRequestProcessors(); //todo 启动SyncRequestProcessor 和 PrepRequestProcessor 线程
 
         registerJMX();
 
@@ -421,11 +421,14 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         notifyAll();
     }
 
+    //todo 构建处理器线程并启动
     protected void setupRequestProcessors() {
         RequestProcessor finalProcessor = new FinalRequestProcessor(this);
         RequestProcessor syncProcessor = new SyncRequestProcessor(this,
                 finalProcessor);
+        //todo 启动一个SyncRequestProcessor 线程
         ((SyncRequestProcessor)syncProcessor).start();
+        //todo 启动一个PrepRequestProcessor 线程
         firstProcessor = new PrepRequestProcessor(this, syncProcessor);
         ((PrepRequestProcessor)firstProcessor).start();
     }
@@ -726,7 +729,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
     
     public void submitRequest(Request si) {
-        if (firstProcessor == null) {
+        if (firstProcessor == null) {//todo 等待Processor就绪
             synchronized (this) {
                 try {
                     // Since all requests are passed to the request
@@ -746,9 +749,9 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         }
         try {
             touch(si.cnxn);
-            boolean validpacket = Request.isValid(si.type);
+            boolean validpacket = Request.isValid(si.type); //todo 判断请求type 也就是请求的方法是否合理
             if (validpacket) {
-                firstProcessor.processRequest(si);
+                firstProcessor.processRequest(si); //todo PrepRequestProcessor 将请求加入 blockingQueue submittedRequests 中
                 if (si.cnxn != null) {
                     incInProcess();
                 }
@@ -964,7 +967,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         InputStream bais = new ByteBufferInputStream(incomingBuffer);
         BinaryInputArchive bia = BinaryInputArchive.getArchive(bais);
         RequestHeader h = new RequestHeader();
-        h.deserialize(bia, "header");
+        h.deserialize(bia, "header"); //todo 读取xid type
         // Through the magic of byte buffers, txn will not be
         // pointing
         // to the start of the txn
@@ -1018,6 +1021,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                 return;
             }
             else {
+                //todo 基于incomingBuffer构建Request 已经去除了header
                 Request si = new Request(cnxn, cnxn.getSessionId(), h.getXid(),
                   h.getType(), incomingBuffer, cnxn.getAuthInfo());
                 si.setOwner(ServerCnxn.me);

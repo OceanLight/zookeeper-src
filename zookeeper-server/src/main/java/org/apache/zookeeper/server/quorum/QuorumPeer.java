@@ -98,8 +98,8 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     LocalPeerBean jmxLocalPeerBean;
     LeaderElectionBean jmxLeaderElectionBean;
     QuorumCnxManager qcm;
-    QuorumAuthServer authServer;
-    QuorumAuthLearner authLearner;
+    QuorumAuthServer authServer; //todo Server
+    QuorumAuthLearner authLearner; //todo learner
     // VisibleForTesting. This flag is used to know whether qLearner's and
     // qServer's login context has been initialized as ApacheDS has concurrency
     // issues. Refer https://issues.apache.org/jira/browse/ZOOKEEPER-2712
@@ -111,7 +111,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
      * bootup and only thrown away in case of a truncate
      * message from the leader
      */
-    private ZKDatabase zkDb;
+    private ZKDatabase zkDb; //todo zkDb
 
     public static class QuorumServer {
         private QuorumServer(long id, InetSocketAddress addr,
@@ -230,9 +230,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             return addresses[0];
         }
 
-        public InetSocketAddress addr;
+        public InetSocketAddress addr; //todo 服务addr
 
-        public InetSocketAddress electionAddr;
+        public InetSocketAddress electionAddr; //todo 选举addr
         
         public String hostname;
 
@@ -633,23 +633,24 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     
     @Override
     public synchronized void start() {
-        loadDataBase();
-        cnxnFactory.start();        
-        startLeaderElection();
-        super.start();
+        loadDataBase(); //todo  初始化DataNode, 后续用于elect
+        cnxnFactory.start(); //todo nio接收client请求。
+        startLeaderElection(); //todo 选举的Sender 和 Listener、Receiver. WorkerReceiver负责处理请求。Listener读取请求， Sender发送请求。绑定选举端口。
+        super.start(); //todo 启动的核心函数 run()。 由lookForLeader发起选举。
     }
 
     private void loadDataBase() {
         File updating = new File(getTxnFactory().getSnapDir(),
                                  UPDATING_EPOCH_FILENAME);
 		try {
-            zkDb.loadDataBase();
+            zkDb.loadDataBase(); //todo 初始化dataTree
 
             // load the epochs
+            //todo zxid 64bit， 前32bit代表epoch
             long lastProcessedZxid = zkDb.getDataTree().lastProcessedZxid;
     		long epochOfZxid = ZxidUtils.getEpochFromZxid(lastProcessedZxid);
             try {
-            	currentEpoch = readLongFromFile(CURRENT_EPOCH_FILENAME);
+            	currentEpoch = readLongFromFile(CURRENT_EPOCH_FILENAME); //todo currentEpoch
                 if (epochOfZxid > currentEpoch && updating.exists()) {
                     LOG.info("{} found. The server was terminated after " +
                              "taking a snapshot but before updating current " +
@@ -720,7 +721,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         }
         if (electionType == 0) {
             try {
-                udpSocket = new DatagramSocket(myQuorumAddr.getPort());
+                udpSocket = new DatagramSocket(myQuorumAddr.getPort()); //todo 启动udp服务
                 responder = new ResponderThread();
                 responder.start();
             } catch (SocketException e) {
@@ -904,7 +905,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             /*
              * Main loop
              */
+            //todo 主循环
             while (running) {
+                //todo 选举
                 switch (getPeerState()) {
                 case LOOKING:
                     LOG.info("LOOKING");
@@ -979,7 +982,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                     try {
                         LOG.info("FOLLOWING");
                         setFollower(makeFollower(logFactory));
-                        follower.followLeader();
+                        follower.followLeader(); //todo 启动follower，连接leader
                     } catch (Exception e) {
                         LOG.warn("Unexpected exception",e);
                     } finally {
@@ -992,7 +995,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                     LOG.info("LEADING");
                     try {
                         setLeader(makeLeader(logFactory));
-                        leader.lead();
+                        leader.lead(); //todo leader核心启动方法
                         setLeader(null);
                     } catch (Exception e) {
                         LOG.warn("Unexpected exception",e);

@@ -72,6 +72,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                                 + Long.toHexString(sessionId)
                                 + ", likely server has closed socket");
             }
+            //todo incomingBuffer读完后。
             if (!incomingBuffer.hasRemaining()) {
                 incomingBuffer.flip();
                 if (incomingBuffer == lenBuffer) {
@@ -368,6 +369,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         }
         if (sendThread.getZkState().isConnected()) {
             synchronized(outgoingQueue) {
+                //todo 如果有可以发送的packet, 就注册OP_WRITE事件
                 if (findSendablePacket(outgoingQueue,
                         cnxn.sendThread.clientTunneledAuthenticationInProgress()) != null) {
                     enableWrite();

@@ -58,16 +58,35 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
     
     @Override
     protected void setupRequestProcessors() {
+        //todo FinalRequestProcessor processRequest方法: 生成resp, 并返回数据。
+        //todo FinalRequestProcessor 无线程。
         RequestProcessor finalProcessor = new FinalRequestProcessor(this);
+        //todo ToBeAppliedRequestProcessor processRequest方法: toBeApplied删除zxid
+        //todo ToBeAppliedRequestProcessor 无线程。
         RequestProcessor toBeAppliedProcessor = new Leader.ToBeAppliedRequestProcessor(
                 finalProcessor, getLeader().toBeApplied);
+
+        //todo CommitProcessor processRequest方法: 将request加入queuedRequests
+        //todo CommitProcessor线程: 从committedRequests获取数据处理, 写入toProcess. 然后调用nextProcessor
         commitProcessor = new CommitProcessor(toBeAppliedProcessor,
                 Long.toString(getServerId()), false,
                 getZooKeeperServerListener());
         commitProcessor.start();
+        //todo ProposalRequestProcessor processRequest：
+        //todo  -- zks.getLeader().propose(request). 将请求写入outstandingProposals，并向所有的LearnerHandler的queuedPackets中添加req, learnHandle线程会发送propsoal请求.
+        //todo  -- LearnerHandler 线程负责发送PROPOSAL，处理ACK 调用processAck方法，当ack多于half， 从outstandingProposals中剔除， 写入toBeApplied。向所有follower发送COMMIT。向观察者发送信息。将req写入committedRequests。
+
+        //todo ProposalRequestProcessor无线程。
+
+        //todo syncProcessor线程：从queuedRequests读取数据进行处理，txnLog写数据。
+        //todo syncProcessor processRequest方法: 将req写入queuedRequests
         ProposalRequestProcessor proposalProcessor = new ProposalRequestProcessor(this,
                 commitProcessor);
         proposalProcessor.initialize();
+
+        //todo processRequest方法，仅将请求写入submittedRequests。
+        //todo 线程处理请求，server的zxid+1, PrepRequestProcessor线程从中获取数据，并处理，并调用nextProcessor.processRequest。 调用nextProcessor.processRequest(request)。
+        //todo 将父节点的变化和当前节点的变化写入队列outstandingChanges。
         firstProcessor = new PrepRequestProcessor(this, proposalProcessor);
         ((PrepRequestProcessor)firstProcessor).start();
     }

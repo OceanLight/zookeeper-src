@@ -325,6 +325,7 @@ public class Leader {
             try {
                 while (!stop) {
                     try{
+                        //todo learner 接收网络请求， 构建 LearnerHandler 线程，并启动。
                         Socket s = ss.accept();
                         // start with the initLimit, once the ack is processed
                         // in LearnerHandler switch to the syncLimit
@@ -373,6 +374,7 @@ public class Leader {
      * @throws IOException
      * @throws InterruptedException
      */
+    //todo 核心启动方法
     void lead() throws IOException, InterruptedException {
         self.end_fle = Time.currentElapsedTime();
         long electionTimeTaken = self.end_fle - self.start_fle;
@@ -384,6 +386,7 @@ public class Leader {
         zk.registerJMX(new LeaderBean(this, zk), self.jmxLocalPeerBean);
 
         try {
+            //todo tick=0
             self.tick.set(0);
             zk.loadData();
             
@@ -391,6 +394,8 @@ public class Leader {
 
             // Start thread that waits for connection requests from 
             // new followers.
+            //todo 启动accept线程 和 learner线程
+            //todo 接收网络请求，并构建LearnerHandler 线程，并启动。
             cnxAcceptor = new LearnerCnxAcceptor();
             cnxAcceptor.start();
             
@@ -435,7 +440,8 @@ public class Leader {
                 self.tick.incrementAndGet();
                 return;
             }
-            
+            //todo 启动zkServer线程。负责处理的请求。
+            //todo 启动SyncRequestProcessor 和 PrepRequestProcessor 线程
             startZkServer();
             
             /**
@@ -469,7 +475,7 @@ public class Leader {
             // We ping twice a tick, so we only update the tick every other
             // iteration
             boolean tickSkip = true;
-    
+            //todo 主节点向所有的learner发送心跳
             while (true) {
                 Thread.sleep(self.tickTime / 2);
                 if (!tickSkip) {
@@ -479,14 +485,16 @@ public class Leader {
 
                 // lock on the followers when we use it.
                 syncedSet.add(self.getId());
-
+                //todo 自身 + learners
+                //todo leader节点，判断所有的learners节点是否正常，是否tick超过tickOfNextAckDeadline。
+                //todo 正常的learner节点，加入syncedSet， 用于判断集群是否就绪。
                 for (LearnerHandler f : getLearners()) {
                     // Synced set is used to check we have a supporting quorum, so only
                     // PARTICIPANT, not OBSERVER, learners should be used
                     if (f.synced() && f.getLearnerType() == LearnerType.PARTICIPANT) {
                         syncedSet.add(f.getSid());
                     }
-                    f.ping();
+                    f.ping(); //todo 每半个tick ping一下。
                 }
 
                 // check leader running status
@@ -608,6 +616,7 @@ public class Leader {
             LOG.debug("Count for zxid: 0x{} is {}",
                     Long.toHexString(zxid), p.ackSet.size());
         }
+        //todo processAck方法：ack多于half， 从outstandingProposals中剔除， 写入toBeApplied。向所有follower发送COMMIT。向观察者发送信息。写入committedRequests。
         if (self.getQuorumVerifier().containsQuorum(p.ackSet)){             
             if (zxid != lastCommitted+1) {
                 LOG.warn("Commiting zxid 0x{} from {} not first!",
@@ -785,7 +794,10 @@ public class Leader {
             }
 
             lastProposed = p.packet.getZxid();
+            //todo proposal 加入 outstandingProposals
             outstandingProposals.put(lastProposed, p);
+            //todo 将proposal加入所有follower的learnerHandler的queuedPackets队列中、
+            //todo learnerHandler中会启动新的线程，不断的sendPacket
             sendPacket(pp);
         }
         return p;

@@ -216,7 +216,7 @@ public class ZKDatabase {
     public long loadDataBase() throws IOException {
         long zxid = snapLog.restore(dataTree, sessionsWithTimeouts, commitProposalPlaybackListener);
         initialized = true;
-        return zxid;
+        return zxid; //todo 返回最新的事务id
     }
 
     /**

@@ -76,6 +76,7 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
                 Long.toString(getServerId()), true,
                 getZooKeeperServerListener());
         commitProcessor.start();
+        //todo FollowerRequestProcessor 将写操作转发zks.getFollower().request(request);
         firstProcessor = new FollowerRequestProcessor(this, commitProcessor);
         ((FollowerRequestProcessor) firstProcessor).start();
         syncProcessor = new SyncRequestProcessor(this,

@@ -327,6 +327,7 @@ public class Learner {
         readPacket(qp);
         LinkedList<Long> packetsCommitted = new LinkedList<Long>();
         LinkedList<PacketInFlight> packetsNotCommitted = new LinkedList<PacketInFlight>();
+        //todo 同步数据
         synchronized (zk) {
             if (qp.getType() == Leader.DIFF) {
                 LOG.info("Getting a diff from the leader 0x{}", Long.toHexString(qp.getZxid()));
@@ -375,6 +376,7 @@ public class Learner {
             // but written out to the transaction log
             boolean writeToTxnLog = !snapshotNeeded;
             // we are now going to start getting transactions to apply followed by an UPTODATE
+            //todo 跟leader数据同步。
             outerLoop:
             while (self.isRunning()) {
                 readPacket(qp);
@@ -429,6 +431,7 @@ public class Learner {
                         packetsCommitted.add(qp.getZxid());
                     }
                     break;
+                //todo 收到UPTODATE请求，代表同步就绪了。就退出同步。
                 case Leader.UPTODATE:
                     if (isPreZAB1_0) {
                         zk.takeSnapshot();
@@ -463,9 +466,12 @@ public class Learner {
                 }
             }
         }
+        //todo 刚选举出来 所有counter = 0
         ack.setZxid(ZxidUtils.makeZxid(newEpoch, 0));
+        //todo ack
         writePacket(ack, true);
         sock.setSoTimeout(self.tickTime * self.syncLimit);
+        //todo 启动zkServer
         zk.startup();
         /*
          * Update the election vote here to ensure that all members of the

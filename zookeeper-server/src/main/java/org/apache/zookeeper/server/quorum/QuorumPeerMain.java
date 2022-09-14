@@ -75,6 +75,7 @@ public class QuorumPeerMain {
      * the command line.
      * @param args path to the configfile
      */
+    //todo 入口函数
     public static void main(String[] args) {
         QuorumPeerMain main = new QuorumPeerMain();
         try {
@@ -111,12 +112,12 @@ public class QuorumPeerMain {
         purgeMgr.start();
 
         if (args.length == 1 && config.servers.size() > 0) {
-            runFromConfig(config);
+            runFromConfig(config); //todo 集群模式
         } else {
             LOG.warn("Either no config or no quorum defined in config, running "
                     + " in standalone mode");
             // there is only server in the quorum -- run as standalone
-            ZooKeeperServerMain.main(args);
+            ZooKeeperServerMain.main(args); //todo 单例模式
         }
     }
 
@@ -129,6 +130,7 @@ public class QuorumPeerMain {
   
       LOG.info("Starting quorum peer");
       try {
+          //todo  ServerCnxnFactory
           ServerCnxnFactory cnxnFactory = ServerCnxnFactory.createFactory();
           cnxnFactory.configure(config.getClientPortAddress(),
                                 config.getMaxClientCnxns());
@@ -165,7 +167,7 @@ public class QuorumPeerMain {
           }
 
           quorumPeer.setQuorumCnxnThreadsSize(config.quorumCnxnThreadsSize);
-          quorumPeer.initialize();
+          quorumPeer.initialize(); //todo 初始化
 
           quorumPeer.start();
           quorumPeer.join();

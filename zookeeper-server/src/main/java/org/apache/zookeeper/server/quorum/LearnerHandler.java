@@ -310,6 +310,7 @@ public class LearnerHandler extends ZooKeeperThread {
      * This thread will receive packets from the peer and process them and
      * also listen to new connections from new peers.
      */
+    //todo 线程。
     @Override
     public void run() {
         try {
@@ -332,6 +333,7 @@ public class LearnerHandler extends ZooKeeperThread {
             if (learnerInfoData != null) {
             	if (learnerInfoData.length == 8) {
             		ByteBuffer bbsid = ByteBuffer.wrap(learnerInfoData);
+            		//todo learnerHandler的sid, 在连接创建时follower会发送FOLLOWERINFO请求，同步连接的对应sid
             		this.sid = bbsid.getLong();
             	} else {
             		LearnerInfo li = new LearnerInfo();
@@ -507,7 +509,7 @@ public class LearnerHandler extends ZooKeeperThread {
                 oa.writeString("BenWasHere", "signature");
             }
             bufferedOutput.flush();
-            
+            //todo 数据发送的线程。
             // Start sending packets
             new Thread() {
                 public void run() {
@@ -553,10 +555,12 @@ public class LearnerHandler extends ZooKeeperThread {
             // using the data
             //
             queuedPackets.add(new QuorumPacket(Leader.UPTODATE, -1, null, null));
-
+            //todo 数据读取线程
             while (true) {
                 qp = new QuorumPacket();
                 ia.readRecord(qp, "packet");
+                //todo 读取数据，阻塞，读取到数据后更新 tickOfNextAckDeadline。
+                //todo 如果读不到数据 就一直阻塞，无法更新 tickOfNextAckDeadline
 
                 long traceMask = ZooTrace.SERVER_PACKET_TRACE_MASK;
                 if (qp.getType() == Leader.PING) {

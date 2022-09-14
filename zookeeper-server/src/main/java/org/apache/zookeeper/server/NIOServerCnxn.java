@@ -194,23 +194,23 @@ public class NIOServerCnxn extends ServerCnxn {
     private void readPayload() throws IOException, InterruptedException {
         if (incomingBuffer.remaining() != 0) { // have we read length bytes?
             int rc = sock.read(incomingBuffer); // sock is non-blocking, so ok
-            if (rc < 0) {
+            if (rc < 0) { //todo 不能channel read返回-1
                 throw new EndOfStreamException(
                         "Unable to read additional data from client sessionid 0x"
                         + Long.toHexString(sessionId)
                         + ", likely client has closed socket");
             }
         }
-
+        //todo 如果payload读完了。
         if (incomingBuffer.remaining() == 0) { // have we read length bytes?
-            packetReceived();
+            packetReceived(); //todo cnxn统计逻辑
             incomingBuffer.flip();
             if (!initialized) {
                 readConnectRequest();
             } else {
-                readRequest();
+                readRequest(); //todo 由zkServer 来处理payload
             }
-            lenBuffer.clear();
+            lenBuffer.clear(); //todo 清空， 下次继续读len
             incomingBuffer = lenBuffer;
         }
     }
@@ -243,6 +243,7 @@ public class NIOServerCnxn extends ServerCnxn {
                 return;
             }
             if (k.isReadable()) {
+                //todo 读取size + payload, 跟kafka原理一样。
                 int rc = sock.read(incomingBuffer);
                 if (rc < 0) {
                     throw new EndOfStreamException(
@@ -250,18 +251,19 @@ public class NIOServerCnxn extends ServerCnxn {
                             + Long.toHexString(sessionId)
                             + ", likely client has closed socket");
                 }
-                if (incomingBuffer.remaining() == 0) {
+                if (incomingBuffer.remaining() == 0) { //todo  incomingBuffer读完了。false时等待下次c.doIO调用继续读数据。
                     boolean isPayload;
+                    //todo 判断本地读取是继续读size 还是payload
                     if (incomingBuffer == lenBuffer) { // start of next request
                         incomingBuffer.flip();
-                        isPayload = readLength(k);
+                        isPayload = readLength(k); //todo 从lenBuffer中获取len, incomingBuffer = ByteBuffer.allocate(len);
                         incomingBuffer.clear();
                     } else {
                         // continuation
                         isPayload = true;
                     }
                     if (isPayload) { // not the case for 4letterword
-                        readPayload();
+                        readPayload(); //todo
                     }
                     else {
                         // four letter words take care

@@ -124,9 +124,9 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
             while (true) {
                 Request si = null;
                 if (toFlush.isEmpty()) {
-                    si = queuedRequests.take();
+                    si = queuedRequests.take(); //todo 队列为空时，阻塞。
                 } else {
-                    si = queuedRequests.poll();
+                    si = queuedRequests.poll(); //todo 队列为空，返回null。
                     if (si == null) {
                         flush(toFlush);
                         continue;
@@ -137,6 +137,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
                 }
                 if (si != null) {
                     // track the number of records written to the log
+                    //todo Proposal阶段写txnLog
                     if (zks.getZKDatabase().append(si)) {
                         logCount++;
                         if (logCount > (snapCount / 2 + randRoll)) {
@@ -161,6 +162,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
                             logCount = 0;
                         }
                     } else if (toFlush.isEmpty()) {
+                        //todo 追加失败后 flush
                         // optimization for read heavy workloads
                         // iff this is a read, and there are no pending
                         // flushes (writes), then just pass this to the next

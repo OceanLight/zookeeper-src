@@ -69,7 +69,9 @@ public class Follower extends Learner{
         try {
             QuorumServer leaderServer = findLeader();            
             try {
+                //todo 连接leader
                 connectToLeader(leaderServer.addr, leaderServer.hostname);
+                //todo 向leader注册follow信息。
                 long newEpochZxid = registerWithLeader(Leader.FOLLOWERINFO);
 
                 //check to see if the leader zxid is lower than ours
@@ -80,11 +82,14 @@ public class Follower extends Learner{
                             + " is less than our accepted epoch " + ZxidUtils.zxidToString(self.getAcceptedEpoch()));
                     throw new IOException("Error: Epoch of leader is lower");
                 }
+                //todo 初始化，同步数据。
+                //todo 启动的核心方案，启动zkServer。
                 syncWithLeader(newEpochZxid);                
                 QuorumPacket qp = new QuorumPacket();
+                //todo 循环跟leader通信。
                 while (this.isRunning()) {
-                    readPacket(qp);
-                    processPacket(qp);
+                    readPacket(qp); //todo 发送
+                    processPacket(qp); //todo 接收
                 }
             } catch (Exception e) {
                 LOG.warn("Exception when following the leader", e);
@@ -110,7 +115,7 @@ public class Follower extends Learner{
     protected void processPacket(QuorumPacket qp) throws IOException{
         switch (qp.getType()) {
         case Leader.PING:            
-            ping(qp);            
+            ping(qp); //todo 处理leader的请求, ping回去.
             break;
         case Leader.PROPOSAL:            
             TxnHeader hdr = new TxnHeader();

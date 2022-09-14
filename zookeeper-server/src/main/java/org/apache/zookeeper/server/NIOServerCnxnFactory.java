@@ -77,10 +77,12 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
     }
 
     Thread thread;
+    //todo 初始化ss ServerSocketChannel, bind+register
+    //todo CnxnFactory 初始化 thread
     @Override
     public void configure(InetSocketAddress addr, int maxcc) throws IOException {
         configureSaslLogin();
-
+        //todo 生成zooKeeper线程, thread = this, 启动时调用this.run()
         thread = new ZooKeeperThread(this, "NIOServerCxn.Factory:" + addr);
         thread.setDaemon(true);
         maxClientCnxns = maxcc;
@@ -113,10 +115,10 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
     @Override
     public void startup(ZooKeeperServer zks) throws IOException,
             InterruptedException {
-        start();
-        setZooKeeperServer(zks);
-        zks.startdata();
-        zks.startup();
+        start(); //todo ZooKeeperThread线程 启动 NIOServerCnxnFactory run
+        setZooKeeperServer(zks); //todo 向zookeeperServer 添加当前NIOServerCnxnFactory对象的引用。
+        zks.startdata(); //todo 初始化zks的数据
+        zks.startup(); //todo 启动zookeeperServer
     }
 
     @Override
@@ -221,16 +223,17 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
                         } else {
                             LOG.info("Accepted socket connection from "
                                      + sc.socket().getRemoteSocketAddress());
-                            sc.configureBlocking(false);
+                            sc.configureBlocking(false); //todo 非阻塞模式
+                            //todo 单reactor模型, 对于accept的连接进行管理，再次加入同一个selector中. 已经注册了OP_READ
                             SelectionKey sk = sc.register(selector,
                                     SelectionKey.OP_READ);
-                            NIOServerCnxn cnxn = createConnection(sc, sk);
-                            sk.attach(cnxn);
-                            addCnxn(cnxn);
+                            NIOServerCnxn cnxn = createConnection(sc, sk); //todo 家里Cnxn, 并再次注册OP_READ??
+                            sk.attach(cnxn);  //todo sk attention NIOServerCnxn对象。 把SocketChannel+SK对象的引用，放入attach对象中，方便使用。
+                            addCnxn(cnxn); //todo 连接管理, HashMap<InetAddress, Set<NIOServerCnxn>>
                         }
                     } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {
                         NIOServerCnxn c = (NIOServerCnxn) k.attachment();
-                        c.doIO(k);
+                        c.doIO(k); //todo 如果是读写请求，由NioServerCnxn中doIO处理。 可能一次读不完数据，就等待sk下次的读事件
                     } else {
                         if (LOG.isDebugEnabled()) {
                             LOG.debug("Unexpected ops in select "

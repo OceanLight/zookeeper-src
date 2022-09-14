@@ -75,6 +75,7 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
                 // path, but different from others, we need to keep track
                 // of the sync operations this follower has pending, so we
                 // add it to pendingSyncs.
+                //todo create到multi, 都转发。
                 switch (request.type) {
                 case OpCode.sync:
                     zks.pendingSyncs.add(request);

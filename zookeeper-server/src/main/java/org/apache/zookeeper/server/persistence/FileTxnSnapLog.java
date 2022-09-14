@@ -172,8 +172,8 @@ public class FileTxnSnapLog {
      */
     public long restore(DataTree dt, Map<Long, Integer> sessions, 
             PlayBackListener listener) throws IOException {
-        snapLog.deserialize(dt, sessions);
-        return fastForwardFromEdits(dt, sessions, listener);
+        snapLog.deserialize(dt, sessions); //todo 读取快照snapshot, 文件后缀是 zxid。
+        return fastForwardFromEdits(dt, sessions, listener); //todo 从editlog中读取lastProcessZxid之后的增量的事务，文件后缀是zxid。
     }
 
     /**

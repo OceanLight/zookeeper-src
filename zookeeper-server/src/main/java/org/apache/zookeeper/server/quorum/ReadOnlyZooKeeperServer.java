@@ -62,7 +62,7 @@ public class ReadOnlyZooKeeperServer extends QuorumZooKeeperServer {
             return;
         }
         registerJMX(new ReadOnlyBean(this), self.jmxLocalPeerBean);
-        super.startup();
+        super.startup(); //todo 启动firstProcessor
         self.cnxnFactory.setZooKeeperServer(this);
         LOG.info("Read-only server started");
     }

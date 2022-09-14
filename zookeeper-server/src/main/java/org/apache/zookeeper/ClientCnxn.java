@@ -763,6 +763,8 @@ public class ClientCnxn {
                 }
                 return;
             }
+            //todo -1 代表 event， notification。
+            //todo SendThread不断从nio获取数据，如果是-1， 则添加到EventTread的waitingEvents中。
             if (replyHdr.getXid() == -1) {
                 // -1 means notification
                 if (LOG.isDebugEnabled()) {
@@ -806,7 +808,7 @@ public class ClientCnxn {
                   ClientCnxn.this);
                 return;
             }
-
+            //todo 从pendingQueue队首拿出。
             Packet packet;
             synchronized (pendingQueue) {
                 if (pendingQueue.size() == 0) {
@@ -838,6 +840,7 @@ public class ClientCnxn {
                 if (replyHdr.getZxid() > 0) {
                     lastZxid = replyHdr.getZxid();
                 }
+                //todo 从中读取出response，放入packet中。
                 if (packet.response != null && replyHdr.getErr() == 0) {
                     packet.response.deserialize(bbia, "response");
                 }
@@ -1057,6 +1060,7 @@ public class ClientCnxn {
                         } else {
                             serverAddress = hostProvider.next(1000);
                         }
+                        //todo 从中选出一个serverAddress，用于构建nio连接。
                         startConnect(serverAddress);
                         clientCnxnSocket.updateLastSendAndHeard();
                     }
@@ -1115,7 +1119,7 @@ public class ClientCnxn {
                         		((clientCnxnSocket.getIdleSend() > 1000) ? 1000 : 0);
                         //send a ping request either time is due or no packet sent out within MAX_SEND_PING_INTERVAL
                         if (timeToNextPing <= 0 || clientCnxnSocket.getIdleSend() > MAX_SEND_PING_INTERVAL) {
-                            sendPing();
+                            sendPing(); //todo ping
                             clientCnxnSocket.updateLastSend();
                         } else {
                             if (timeToNextPing < to) {
